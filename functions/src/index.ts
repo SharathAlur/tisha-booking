@@ -1,4 +1,5 @@
-import * as functions from 'firebase-functions';
+import { onDocumentUpdated, onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onRequest } from "firebase-functions/v2/https";
 import * as admin from 'firebase-admin';
 
 admin.initializeApp();
@@ -9,11 +10,12 @@ const db = admin.firestore();
  * Cloud Function: Validate and process new bookings
  * Prevents double-booking by checking date availability before confirming
  */
-export const processBooking = functions.firestore
-  .document('bookings/{bookingId}')
-  .onCreate(async (snapshot, context) => {
-    const booking = snapshot.data();
-    const bookingId = context.params.bookingId;
+export const processBooking = onDocumentCreated('bookings/{bookingId}',async (event) => {
+    const snapshot = event.data;  // ✅ v2: event.data
+    if (!snapshot) return;
+    const booking = snapshot.data()
+    
+    const bookingId = event.params.bookingId;
 
     console.log(`Processing new booking: ${bookingId}`);
 
@@ -21,7 +23,7 @@ export const processBooking = functions.firestore
       // Check if the date is already booked
       const existingBookings = await db
         .collection('bookings')
-        .where('hallId', '==', booking.hallId)
+        .where('id', '==', booking.id)
         .where('date', '==', booking.date)
         .where('status', 'in', ['pending', 'confirmed'])
         .get();
@@ -88,15 +90,13 @@ export const processBooking = functions.firestore
  * Cloud Function: Handle booking status changes
  * Updates hall availability when bookings are confirmed or cancelled
  */
-export const onBookingStatusChange = functions.firestore
-  .document('bookings/{bookingId}')
-  .onUpdate(async (change, context) => {
-    const before = change.before.data();
-    const after = change.after.data();
-    const bookingId = context.params.bookingId;
+export const onBookingStatusChange = onDocumentUpdated('bookings/{bookingId}', async (event) => {
+  const bookingId = event.params.bookingId;
+  const before = event.data?.before.data();
+  const after = event.data?.after.data();
 
     // Only process if status changed
-    if (before.status === after.status) {
+    if (!before || !after || before.status === after.status) {
       return;
     }
 
@@ -144,85 +144,85 @@ export const onBookingStatusChange = functions.firestore
     }
   });
 
-/**
- * Cloud Function: Cleanup old pending bookings
- * Runs daily to cancel pending bookings that are more than 48 hours old
- */
-export const cleanupPendingBookings = functions.pubsub
-  .schedule('every 24 hours')
-  .onRun(async () => {
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+// /**
+//  * Cloud Function: Cleanup old pending bookings
+//  * Runs daily to cancel pending bookings that are more than 48 hours old
+//  */
+// export const cleanupPendingBookings = functions.pubsub
+//   .schedule('every 24 hours')
+//   .onRun(async () => {
+//     const twoDaysAgo = new Date();
+//     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
 
-    console.log('Running cleanup of old pending bookings');
+//     console.log('Running cleanup of old pending bookings');
 
-    try {
-      const oldPendingBookings = await db
-        .collection('bookings')
-        .where('status', '==', 'pending')
-        .where('createdAt', '<', admin.firestore.Timestamp.fromDate(twoDaysAgo))
-        .get();
+//     try {
+//       const oldPendingBookings = await db
+//         .collection('bookings')
+//         .where('status', '==', 'pending')
+//         .where('createdAt', '<', admin.firestore.Timestamp.fromDate(twoDaysAgo))
+//         .get();
 
-      const batch = db.batch();
-      let count = 0;
+//       const batch = db.batch();
+//       let count = 0;
 
-      for (const doc of oldPendingBookings.docs) {
-        batch.update(doc.ref, {
-          status: 'cancelled',
-          cancellationReason: 'Booking expired - no response within 48 hours',
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-        count++;
-      }
+//       for (const doc of oldPendingBookings.docs) {
+//         batch.update(doc.ref, {
+//           status: 'cancelled',
+//           cancellationReason: 'Booking expired - no response within 48 hours',
+//           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+//         });
+//         count++;
+//       }
 
-      if (count > 0) {
-        await batch.commit();
-        console.log(`Cancelled ${count} expired pending bookings`);
-      } else {
-        console.log('No expired bookings to cleanup');
-      }
-    } catch (error) {
-      console.error('Error cleaning up pending bookings:', error);
-      throw error;
-    }
-  });
+//       if (count > 0) {
+//         await batch.commit();
+//         console.log(`Cancelled ${count} expired pending bookings`);
+//       } else {
+//         console.log('No expired bookings to cleanup');
+//       }
+//     } catch (error) {
+//       console.error('Error cleaning up pending bookings:', error);
+//       throw error;
+//     }
+//   });
 
-/**
- * Cloud Function: Send booking reminder
- * Runs daily to send reminders for bookings happening tomorrow
- */
-export const sendBookingReminders = functions.pubsub
-  .schedule('every day 09:00')
-  .timeZone('Asia/Kolkata')
-  .onRun(async () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+// /**
+//  * Cloud Function: Send booking reminder
+//  * Runs daily to send reminders for bookings happening tomorrow
+//  */
+// export const sendBookingReminders = functions.pubsub
+//   .schedule('every day 09:00')
+//   .timeZone('Asia/Kolkata')
+//   .onRun(async () => {
+//     const tomorrow = new Date();
+//     tomorrow.setDate(tomorrow.getDate() + 1);
+//     const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-    console.log(`Sending reminders for bookings on ${tomorrowStr}`);
+//     console.log(`Sending reminders for bookings on ${tomorrowStr}`);
 
-    try {
-      const upcomingBookings = await db
-        .collection('bookings')
-        .where('date', '==', tomorrowStr)
-        .where('status', '==', 'confirmed')
-        .get();
+//     try {
+//       const upcomingBookings = await db
+//         .collection('bookings')
+//         .where('date', '==', tomorrowStr)
+//         .where('status', '==', 'confirmed')
+//         .get();
 
-      for (const doc of upcomingBookings.docs) {
-        const booking = doc.data();
-        await sendNotification(
-          booking.userId,
-          'Reminder: Your Event is Tomorrow! 📅',
-          `Don't forget - your event at ${booking.hallName} is tomorrow!`
-        );
-      }
+//       for (const doc of upcomingBookings.docs) {
+//         const booking = doc.data();
+//         await sendNotification(
+//           booking.userId,
+//           'Reminder: Your Event is Tomorrow! 📅',
+//           `Don't forget - your event at ${booking.hallName} is tomorrow at ${booking.startTime}!`
+//         );
+//       }
 
-      console.log(`Sent ${upcomingBookings.size} booking reminders`);
-    } catch (error) {
-      console.error('Error sending booking reminders:', error);
-      throw error;
-    }
-  });
+//       console.log(`Sent ${upcomingBookings.size} booking reminders`);
+//     } catch (error) {
+//       console.error('Error sending booking reminders:', error);
+//       throw error;
+//     }
+//   });
 
 /**
  * Helper function to send push notifications
@@ -272,11 +272,10 @@ async function sendNotification(
 /**
  * HTTP Function: Health check endpoint
  */
-export const healthCheck = functions.https.onRequest((req, res) => {
-  res.status(200).json({
-    status: 'healthy',
+export const healthCheck = onRequest({ region: "asia-south1" }, (req, res) => {
+  res.status(200).json({ 
+    status: "healthy", 
     timestamp: new Date().toISOString(),
-    version: '1.0.0',
+    uptime: process.uptime()
   });
 });
-
