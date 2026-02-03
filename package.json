@@ -33,7 +33,7 @@
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.15.6",
     "@mui/material": "^5.15.6",
-    "@mui/x-date-pickers": "^6.19.0",
+    "@mui/x-date-pickers": "^8.26.0",
     "date-fns": "^4.1.0",
     "firebase": "^10.7.2",
     "moment": "^2.30.1",

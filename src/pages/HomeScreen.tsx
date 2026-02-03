@@ -5,21 +5,13 @@ import {
   CardContent,
   Typography,
   Grid,
-  Chip,
-  Divider,
-  Button,
   Paper,
   IconButton,
   Tooltip,
 } from '@mui/material';
 import {
-  LocationOn,
-  Phone,
-  People,
-  SquareFoot,
   ChevronLeft,
   ChevronRight,
-  Add,
 } from '@mui/icons-material';
 import moment from 'moment';
 import { useHallStore } from '../stores/hallStore';
@@ -104,122 +96,11 @@ const HomeScreen: React.FC = () => {
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
       <Grid container spacing={3}>
-        {/* Hall Details Section */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="h5" gutterBottom fontWeight={600}>
-                {selectedHall.name}
-              </Typography>
-
-              {selectedHall.description && (
-                <Typography color="text.secondary" paragraph>
-                  {selectedHall.description}
-                </Typography>
-              )}
-
-              <Divider sx={{ my: 2 }} />
-
-              {/* Capacity & Size */}
-              <Box sx={{ display: 'flex', gap: 3, mb: 2, flexWrap: 'wrap' }}>
-                {selectedHall.capacity && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <People color="primary" />
-                    <Typography>
-                      Capacity: <strong>{selectedHall.capacity}</strong> guests
-                    </Typography>
-                  </Box>
-                )}
-                {selectedHall.squareFeet && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <SquareFoot color="primary" />
-                    <Typography>
-                      <strong>{selectedHall.squareFeet.toLocaleString()}</strong> sq ft
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-
-              {/* Address */}
-              {selectedHall.address && (
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2 }}>
-                  <LocationOn color="action" sx={{ mt: 0.25 }} />
-                  <Typography color="text.secondary">
-                    {selectedHall.address}
-                    {selectedHall.city && `, ${selectedHall.city}`}
-                    {selectedHall.state && `, ${selectedHall.state}`}
-                    {selectedHall.zipCode && ` ${selectedHall.zipCode}`}
-                  </Typography>
-                </Box>
-              )}
-
-              {/* Contact Info */}
-              {selectedHall.phone && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Phone color="action" fontSize="small" />
-                  <Typography color="text.secondary">
-                    {selectedHall.phone}
-                  </Typography>
-                </Box>
-              )}
-
-              {/* Pricing */}
-              {selectedHall.price && (
-                <>
-                  <Divider sx={{ my: 2 }} />
-                  <Typography variant="h6" gutterBottom>
-                    Pricing
-                  </Typography>
-                  <Typography variant="h4" color="primary" fontWeight={700}>
-                    ₹{selectedHall.price.toLocaleString()}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    per booking
-                  </Typography>
-                </>
-              )}
-
-              {/* Amenities */}
-              {selectedHall.amenities && selectedHall.amenities.length > 0 && (
-                <>
-                  <Divider sx={{ my: 2 }} />
-                  <Typography variant="h6" gutterBottom>
-                    Amenities
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {selectedHall.amenities.map((amenity) => (
-                      <Chip
-                        key={amenity.id}
-                        label={amenity.name}
-                        size="small"
-                        variant="outlined"
-                        color={amenity.included ? 'primary' : 'default'}
-                      />
-                    ))}
-                  </Box>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
 
         {/* Calendar Section */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" fontWeight={600}>
-                  Booking Calendar
-                </Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<Add />}
-                  onClick={() => openBookingModal()}
-                  size="small"
-                >
-                  New Booking
-                </Button>
-              </Box>
 
               {/* Month Navigation */}
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -256,11 +137,10 @@ const HomeScreen: React.FC = () => {
                   <Grid item xs={12 / 7} key={index}>
                     {day.date ? (
                       <Tooltip
-                        title={
-                          day.isPast
-                            ? 'Past date'
-                            : day.isBooked
+                        title={day.isBooked
                             ? 'Booked'
+                            : day.isPast
+                            ? 'Past date' 
                             : 'Click to book'
                         }
                       >
@@ -282,10 +162,10 @@ const HomeScreen: React.FC = () => {
                               ? 'grey.500'
                               : 'success.contrastText',
                             '&:hover': {
-                              bgcolor: day.isPast
+                              bgcolor: day.isBooked
+                                ? 'error.main'
+                                : day.isPast
                                 ? 'grey.100'
-                                : day.isBooked
-                                ? 'error.dark'
                                 : 'success.main',
                             },
                             transition: 'background-color 0.2s',

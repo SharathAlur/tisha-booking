@@ -15,12 +15,9 @@ import {
   Paper,
 } from '@mui/material';
 import {
-  TrendingUp,
   Event,
   CheckCircle,
-  Cancel,
-  AttachMoney,
-  AccountBalance,
+  Cancel
 } from '@mui/icons-material';
 import { useBookingStore } from '../stores/bookingStore';
 
@@ -203,34 +200,6 @@ const DashboardScreen: React.FC = () => {
             value={summary.cancelledBookings}
             icon={<Cancel />}
             color="#d32f2f"
-          />
-        </Grid>
-
-        <Grid item xs={6} md={4} lg={2}>
-          <StatCard
-            title="Total Revenue"
-            value={formatCurrency(summary.totalRevenue)}
-            icon={<TrendingUp />}
-            color="#ed6c02"
-            subtitle="From confirmed bookings"
-          />
-        </Grid>
-
-        <Grid item xs={6} md={4} lg={2}>
-          <StatCard
-            title="Advance Collected"
-            value={formatCurrency(summary.advanceCollected)}
-            icon={<AccountBalance />}
-            color="#9c27b0"
-          />
-        </Grid>
-
-        <Grid item xs={6} md={4} lg={2}>
-          <StatCard
-            title="Balance Due"
-            value={formatCurrency(summary.totalRevenue - summary.advanceCollected)}
-            icon={<AttachMoney />}
-            color="#0288d1"
           />
         </Grid>
       </Grid>

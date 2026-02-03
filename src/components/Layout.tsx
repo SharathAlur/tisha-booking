@@ -29,6 +29,7 @@ import {
 import { useHallStore } from '../stores/hallStore';
 import { useUIStore } from '../stores/uiStore';
 import BookingModal from './BookingModal';
+import { stringToTitleCase } from './utils';
 
 const DRAWER_WIDTH = 240;
 
@@ -90,7 +91,7 @@ const Layout: React.FC = () => {
         >
           <Toolbar>
             <Typography variant="h6" fontWeight={700} color="primary">
-              {selectedHall?.name || 'Hall Manager'}
+              {selectedHall?.name ? stringToTitleCase(selectedHall.name) : 'Hall Manager'}
             </Typography>
           </Toolbar>
           <List>
@@ -149,7 +150,7 @@ const Layout: React.FC = () => {
                 </IconButton>
               )}
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                {selectedHall?.name || 'Hall Manager'}
+                {selectedHall?.name ? stringToTitleCase(selectedHall.name) : 'Hall Manager'}
               </Typography>
             </Toolbar>
           </AppBar>

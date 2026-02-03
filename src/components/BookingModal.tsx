@@ -79,7 +79,7 @@ const BookingModal: React.FC = () => {
         hallPrice: hallPrice,
         discount: 0,
         totalAmount: hallPrice,
-        advanceAmount: 10000, // 25% advance by default
+        advanceAmount: 0, // 25% advance by default
         advancePaid: true,
       });
       setFormError(null);
@@ -206,7 +206,7 @@ const BookingModal: React.FC = () => {
             <Grid item xs={12} sm={6}>
               <DatePicker
                 label="Event Date *"
-                value={formData.date}
+                value={formData.date as Moment}
                 onChange={(date) => handleChange('date', date)}
                 slotProps={{
                   textField: { fullWidth: true, size: 'small' },
