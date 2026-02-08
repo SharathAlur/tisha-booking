@@ -52,8 +52,8 @@ coverage
 
 # Capacitor
 # Uncomment these if you don't want to track native projects in git
-# android/
-# ios/
+android/
+ios/
 android/app/build
 android/.gradle
 android/build

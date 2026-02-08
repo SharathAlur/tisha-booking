@@ -18,7 +18,9 @@
     "cap:run:ios": "npm run build && cap sync ios && cap run ios",
     "cap:live": "npm run dev:host",
     "deploy": "npm run build && firebase deploy",
-    "deploy:android": "npm run build && npx cap sync && npx cap open android"
+    "deploy:android": "npm run build && npx cap sync && npx cap open android",
+    "apk:debug": "rm -rf android && npm run build && npx cap add android && cd android && ./gradlew assembleDebug && cd ..",
+    "apk:release": "rm -rf android && npm run build && npx cap add android && cd android && ./gradlew assembleRelease && cd .."
   },
   "dependencies": {
     "@capacitor/android": "^5.7.0",

@@ -26,13 +26,15 @@ import {
   Event,
   Person,
   Phone,
-  AttachMoney,
+  CurrencyRupee,
   EventNote,
+  Edit,
 } from '@mui/icons-material';
 import moment from 'moment';
 import { useBookingStore } from '../stores/bookingStore';
 import { useUIStore } from '../stores/uiStore';
 import { Booking } from '../types';
+import EditBookingModal from '../components/EditBookingModal';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -57,10 +59,11 @@ const formatCurrency = (amount: number): string => {
 interface BookingCardProps {
   booking: Booking;
   onCancel?: (booking: Booking) => void;
+  onEdit?: (booking: Booking) => void;
   showCancelButton?: boolean;
 }
 
-const BookingCard: React.FC<BookingCardProps> = ({ booking, onCancel, showCancelButton }) => {
+const BookingCard: React.FC<BookingCardProps> = ({ booking, onCancel, onEdit, showCancelButton }) => {
   return (
     <Card sx={{ mb: 2 }}>
       <CardContent>
@@ -87,13 +90,16 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onCancel, showCancel
               />
             </Box>
           </Box>
+          {showCancelButton && booking.status === 'confirmed' && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Chip
-              label={booking.status}
-              size="small"
-              color={booking.status === 'confirmed' ? 'success' : 'error'}
-            />
-            {showCancelButton && booking.status === 'confirmed' && (
+            <Tooltip title="Edit Booking">
+                <IconButton
+                  size="small"
+                  onClick={() => onEdit?.(booking)}
+                >
+                  <Edit />
+                </IconButton>
+              </Tooltip>
               <Tooltip title="Cancel Booking">
                 <IconButton
                   size="small"
@@ -103,8 +109,8 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onCancel, showCancel
                   <Cancel />
                 </IconButton>
               </Tooltip>
-            )}
           </Box>
+)}
         </Box>
 
         <Divider sx={{ my: 1.5 }} />
@@ -135,7 +141,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onCancel, showCancel
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 120 }}>
-            <AttachMoney color="action" fontSize="small" />
+            <CurrencyRupee color="action" fontSize="small" />
             <Box>
               <Typography variant="body2" color="text.secondary">
                 Amount
@@ -146,9 +152,8 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onCancel, showCancel
             </Box>
           </Box>
 
-          {booking.advanceAmount && booking.advanceAmount > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 120 }}>
-              <AttachMoney color="action" fontSize="small" />
+              <CurrencyRupee color="action" fontSize="small" />
               <Box>
                 <Typography variant="body2" color="text.secondary">
                   Advance {booking.advancePaid ? '(Paid)' : '(Pending)'}
@@ -158,11 +163,26 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onCancel, showCancel
                   fontWeight={500}
                   color={booking.advancePaid ? 'success.main' : 'warning.main'}
                 >
-                  {formatCurrency(booking.advanceAmount)}
+                  {formatCurrency(booking.advanceAmount || 0)}
                 </Typography>
               </Box>
             </Box>
-          )}
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 120 }}>
+              <CurrencyRupee color="action" fontSize="small" />
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  Remaining Amount
+                </Typography>
+                <Typography
+                  variant="body1"
+                  fontWeight={500}
+                  color={'error'}
+                >
+                  {formatCurrency(booking.totalAmount - (booking.advanceAmount || 0))}
+                </Typography>
+              </Box>
+            </Box>
         </Box>
 
         {(booking.details.specialRequests || booking.notes) && (
@@ -193,6 +213,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onCancel, showCancel
 const BookingsScreen: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [cancelReason, setCancelReason] = useState('');
 
@@ -217,6 +238,16 @@ const BookingsScreen: React.FC = () => {
     setSelectedBooking(booking);
     setCancelDialogOpen(true);
     setCancelReason('');
+  };
+
+  const handleEditClick = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditClose = () => {
+    setEditDialogOpen(false);
+    setSelectedBooking(null);
   };
 
   const handleConfirmCancel = async () => {
@@ -258,34 +289,104 @@ const BookingsScreen: React.FC = () => {
         value={tabValue}
         onChange={handleTabChange}
         variant="fullWidth"
-        sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
+        scrollButtons={false}
+        sx={{ 
+          mb: 2, 
+          borderBottom: 1, 
+          borderColor: 'divider',
+          // Override for all tabs
+          '& .MuiTab-root': {
+            flexShrink: 0,
+            minWidth: 0,  // Allows wrapping if extreme
+            whiteSpace: 'nowrap',  // Keeps label intact
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          },
+          // Mobile-specific: tighter spacing
+          '@media (max-width: 600px)': {
+            '& .MuiTabs-flexContainer': {
+              gap: 0.5,
+            },
+          }
+        }}
       >
         <Tab
           label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 0.5,  // Reduce gap on mobile
+              minWidth: 0,  // Enable flex shrink on label container
+              '@media (max-width: 600px)': {
+                fontSize: '0.75rem',  // Smaller font for mobile
+              }
+            }}>
               Upcoming
               {upcomingBookings.length > 0 && (
-                <Chip label={upcomingBookings.length} size="small" color="primary" />
+                <Chip 
+                  label={upcomingBookings.length} 
+                  size="small" 
+                  color="primary"
+                  sx={{ 
+                    fontSize: '0.65rem',  // Compact chip
+                    height: 18,
+                    minWidth: 20,
+                  }} 
+                />
               )}
             </Box>
           }
         />
         <Tab
           label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 0.5,  // Reduce gap on mobile
+              minWidth: 0,  // Enable flex shrink on label container
+              '@media (max-width: 600px)': {
+                fontSize: '0.75rem',  // Smaller font for mobile
+              }
+            }}>
               Completed
               {completedBookings.length > 0 && (
-                <Chip label={completedBookings.length} size="small" />
+                <Chip 
+                  label={completedBookings.length} 
+                  size="small" 
+                  color="primary"
+                  sx={{ 
+                    fontSize: '0.65rem',  // Compact chip
+                    height: 18,
+                    minWidth: 20,
+                  }} 
+                />
               )}
             </Box>
           }
         />
         <Tab
           label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 0.5,  // Reduce gap on mobile
+              minWidth: 0,  // Enable flex shrink on label container
+              '@media (max-width: 600px)': {
+                fontSize: '0.75rem',  // Smaller font for mobile
+              }
+            }}>
               Cancelled
               {cancelledBookings.length > 0 && (
-                <Chip label={cancelledBookings.length} size="small" color="error" />
+                <Chip 
+                  label={cancelledBookings.length} 
+                  size="small" 
+                  color="primary"
+                  sx={{ 
+                    fontSize: '0.65rem',  // Compact chip
+                    height: 18,
+                    minWidth: 20,
+                  }} 
+                />
               )}
             </Box>
           }
@@ -301,6 +402,7 @@ const BookingsScreen: React.FC = () => {
               key={booking.id}
               booking={booking}
               onCancel={handleCancelClick}
+              onEdit={handleEditClick}
               showCancelButton
             />
           ))
@@ -352,7 +454,7 @@ const BookingsScreen: React.FC = () => {
           </DialogContentText>
           <TextField
             fullWidth
-            label="Cancellation Reason (Optional)"
+            label="Cancellation Reason"
             multiline
             rows={2}
             value={cancelReason}
@@ -365,12 +467,19 @@ const BookingsScreen: React.FC = () => {
             onClick={handleConfirmCancel}
             color="error"
             variant="contained"
-            disabled={isSubmitting}
+            disabled={!cancelReason || isSubmitting}
           >
             Cancel Booking
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Edit Booking Modal */}
+      <EditBookingModal
+        open={editDialogOpen}
+        booking={selectedBooking}
+        onClose={handleEditClose}
+      />
     </Box>
   );
 };

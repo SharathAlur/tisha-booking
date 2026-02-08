@@ -154,6 +154,11 @@ const BookingModal: React.FC = () => {
       return false;
     }
 
+    if (formData.advanceAmount <= 0) {
+      setFormError('Please enter advance amount');
+      return false;
+    }
+
     return true;
   };
 
@@ -189,12 +194,6 @@ const BookingModal: React.FC = () => {
         </DialogTitle>
 
         <DialogContent dividers>
-          {(formError || error) && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {formError || error}
-            </Alert>
-          )}
-
           <Grid container spacing={2}>
             {/* Date & Time */}
             <Grid item xs={12}>
@@ -396,6 +395,11 @@ const BookingModal: React.FC = () => {
           </Grid>
         </DialogContent>
 
+      {(formError || error) && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {formError || error}
+          </Alert>
+        )}
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={closeBookingModal}>Cancel</Button>
           <Button
@@ -403,7 +407,7 @@ const BookingModal: React.FC = () => {
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Creating...' : 'Create Booking'}
+            {isSubmitting ? 'Creating...' : 'Create'}
           </Button>
         </DialogActions>
       </Dialog>
