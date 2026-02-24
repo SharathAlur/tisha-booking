@@ -17,6 +17,7 @@ import {
   IconButton,
   Typography,
   Alert,
+  Snackbar
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -68,6 +69,7 @@ const BookingModal: React.FC = () => {
 
   const [formData, setFormData] = useState<BookingFormData>(initialFormData);
   const [formError, setFormError] = useState<string | null>(null);
+  const [isAlreadyBooked, setIsAlreadyBooked] = useState<boolean>(false);
 
   // Set initial values when modal opens
   useEffect(() => {
@@ -87,22 +89,29 @@ const BookingModal: React.FC = () => {
     }
   }, [isBookingModalOpen, selectedDate, selectedHall, clearError]);
 
+  const closeModal = () => {
+    setIsAlreadyBooked(false);
+    closeBookingModal()
+  }
+
   const handleChange = (field: keyof BookingFormData, value: unknown) => {
     setFormData((prev) => {
       const updated = { ...prev, [field]: value };
-      
-      // Recalculate total when discount changes
-      if (field === 'discount') {
-        const discount = Math.max(0, Math.min(value as number, prev.hallPrice));
-        updated.discount = discount;
-        updated.totalAmount = prev.hallPrice - discount;
+      if (field === 'date' && value) {
+        const bookedEvent = bookings.find((event) => event.date === moment(value).format('YYYY-MM-DD'));
+        setIsAlreadyBooked(!!bookedEvent);
       }
-      
+
+      // Recalculate total when discount changes
+      if (field === 'totalAmount') {
+        updated.totalAmount = Math.max(0, Math.min(value as number, prev.hallPrice));
+        updated.discount = prev.hallPrice - updated.totalAmount;
+      }
+
       // Auto-check advancePaid when advanceAmount > 0
       if (field === 'advanceAmount') {
         updated.advancePaid = (value as number) > 0;
       }
-      
       return updated;
     });
     setFormError(null);
@@ -169,7 +178,7 @@ const BookingModal: React.FC = () => {
     try {
       await createBooking(selectedHall.id, selectedHall.name, formData);
       showSnackbar('Booking created successfully!', 'success');
-      closeBookingModal();
+      closeModal();
     } catch {
       showSnackbar(error || 'Failed to create booking', 'error');
     }
@@ -179,7 +188,7 @@ const BookingModal: React.FC = () => {
     <LocalizationProvider dateAdapter={AdapterMoment}>
       <Dialog
         open={isBookingModalOpen}
-        onClose={closeBookingModal}
+        onClose={closeModal}
         maxWidth="sm"
         fullWidth
         PaperProps={{ sx: { m: 1 } }}
@@ -188,12 +197,28 @@ const BookingModal: React.FC = () => {
           <Typography variant="h6" fontWeight={600}>
             New Booking
           </Typography>
-          <IconButton onClick={closeBookingModal} size="small">
+          <IconButton onClick={closeModal} size="small">
             <Close />
           </IconButton>
         </DialogTitle>
 
         <DialogContent dividers>
+
+          {/* Global Snackbar */}
+          <Snackbar
+            open={isAlreadyBooked}
+            onClose={closeModal}
+            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          >
+            <Alert
+              onClose={closeModal}
+              severity="error"
+              variant="filled"
+              sx={{ width: '100%' }}
+            >
+              The date is already booked
+            </Alert>
+          </Snackbar>
           <Grid container spacing={2}>
             {/* Date & Time */}
             <Grid item xs={12}>
@@ -282,6 +307,7 @@ const BookingModal: React.FC = () => {
                 value={formData.customerPhone}
                 onChange={(e) => handleChange('customerPhone', e.target.value)}
                 fullWidth
+                type='number'
                 size="small"
               />
             </Grid>
@@ -306,50 +332,16 @@ const BookingModal: React.FC = () => {
 
             <Grid item xs={12} sm={4}>
               <TextField
-                label="Hall Price"
-                type="number"
-                value={formData.hallPrice}
-                fullWidth
-                size="small"
-                disabled
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={4}>
-              <TextField
-                label="Discount"
-                type="number"
-                value={formData.discount}
-                onChange={(e) => handleChange('discount', parseInt(e.target.value) || 0)}
-                fullWidth
-                size="small"
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                }}
-                helperText={formData.discount > 0 ? `${Math.round((formData.discount / formData.hallPrice) * 100)}% off` : ''}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={4}>
-              <TextField
-                label="Final Amount"
+                label="Total Amount"
                 type="number"
                 value={formData.totalAmount}
+                onChange={(e) => handleChange('totalAmount', parseInt(e.target.value) || 0)}
                 fullWidth
                 size="small"
-                disabled
                 InputProps={{
                   startAdornment: <InputAdornment position="start">₹</InputAdornment>,
                 }}
-                sx={{
-                  '& .MuiInputBase-input.Mui-disabled': {
-                    WebkitTextFillColor: 'primary.main',
-                    fontWeight: 600,
-                  },
-                }}
+                helperText={formData.totalAmount > 0 ? `${Math.round(((formData.hallPrice - formData.totalAmount) / formData.hallPrice) * 100)}% off` : ''}
               />
             </Grid>
 
@@ -395,13 +387,14 @@ const BookingModal: React.FC = () => {
           </Grid>
         </DialogContent>
 
-      {(formError || error) && (
+        {(formError || error) && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {formError || error}
           </Alert>
         )}
+
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={closeBookingModal}>Cancel</Button>
+          <Button onClick={closeModal}>Cancel</Button>
           <Button
             variant="contained"
             onClick={handleSubmit}

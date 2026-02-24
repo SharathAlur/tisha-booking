@@ -13,12 +13,21 @@ import {
   InputAdornment,
   Box,
   Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { Close, Event, Person, Phone, AttachMoney } from '@mui/icons-material';
 import moment from 'moment';
 import { useBookingStore } from '../stores/bookingStore';
 import { useUIStore } from '../stores/uiStore';
-import { Booking } from '../types';
+import { Booking, DietaryPreference } from '../types';
+
+const DIETARY_OPTIONS: { value: DietaryPreference; label: string }[] = [
+  { value: 'veg', label: 'Vegetarian' },
+  { value: 'non-veg', label: 'Non-Vegetarian' },
+];
 
 interface EditBookingModalProps {
   open: boolean;
@@ -42,6 +51,7 @@ const EditBookingModal: React.FC<EditBookingModalProps> = ({ open, booking, onCl
   const [customerPhone, setCustomerPhone] = useState('');
   const [totalAmount, setTotalAmount] = useState(0);
   const [advanceAmount, setAdvanceAmount] = useState(0);
+  const [dietaryPreference, setDietaryPreference] = useState<DietaryPreference>(DIETARY_OPTIONS[0].value);
   const [formError, setFormError] = useState<string | null>(null);
 
   // Set initial values when modal opens with a booking
@@ -51,7 +61,8 @@ const EditBookingModal: React.FC<EditBookingModalProps> = ({ open, booking, onCl
       setCustomerPhone(booking.customerPhone);
       setTotalAmount(booking.totalAmount);
       setAdvanceAmount(booking.advanceAmount || 0);
-      
+      setDietaryPreference(booking.details.dietaryPreference || DIETARY_OPTIONS[0].value)
+
       setFormError(null);
       clearError();
     }
@@ -95,6 +106,10 @@ const EditBookingModal: React.FC<EditBookingModalProps> = ({ open, booking, onCl
         customerPhone: customerPhone.trim(),
         totalAmount,
         advanceAmount,
+        details: {
+          ...booking.details,
+          dietaryPreference
+        }
       });
       showSnackbar('Booking updated successfully!', 'success');
       onClose();
@@ -145,12 +160,6 @@ const EditBookingModal: React.FC<EditBookingModalProps> = ({ open, booking, onCl
               variant="outlined"
             />
             <Chip
-              label={booking.details.dietaryPreference === 'veg' ? '🥬 Veg' : '🍖 Non-Veg'}
-              size="small"
-              color={booking.details.dietaryPreference === 'veg' ? 'success' : 'warning'}
-              variant="outlined"
-            />
-            <Chip
               label={`${booking.details.guestCount} guests`}
               size="small"
               variant="outlined"
@@ -159,6 +168,23 @@ const EditBookingModal: React.FC<EditBookingModalProps> = ({ open, booking, onCl
         </Box>
 
         <Grid container spacing={2.5}>
+
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Dietary Preference</InputLabel>
+              <Select
+                value={dietaryPreference}
+                label="Dietary Preference"
+                onChange={(e) => setDietaryPreference(e.target.value as DietaryPreference)}
+              >
+                {DIETARY_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
           {/* Customer Details Section */}
           <Grid item xs={12}>
             <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -199,6 +225,7 @@ const EditBookingModal: React.FC<EditBookingModalProps> = ({ open, booking, onCl
               fullWidth
               size="small"
               required
+              type='number'
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -255,10 +282,10 @@ const EditBookingModal: React.FC<EditBookingModalProps> = ({ open, booking, onCl
         </Grid>
       </DialogContent>
       {(formError || error) && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {formError || error}
-          </Alert>
-        )}
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {formError || error}
+        </Alert>
+      )}
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={handleClose}>Cancel</Button>
         <Button
